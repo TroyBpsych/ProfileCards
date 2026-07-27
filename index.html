@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalyst Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ── TOKENS ── */
+  :root {
+    --bg: #f0ece4;
+    --ink: #1c1c2e;
+    --muted: #7a7060;
+    --paper: #fdfaf4;
+    --rule: #ddd8cc;
+
+    /* Per-type accent colors — warm, distinct, non-clinical */
+    --INTJ: #3d6b8e; --INTP: #5b7fa6; --ENTJ: #2a5278; --ENTP: #4a7fa5;
+    --INFJ: #6b5b8e; --INFP: #8e6b9e; --ENFJ: #5a3d7a; --ENFP: #7a5a9e;
+    --ISTJ: #4a7a5a; --ISFJ: #5a8a6a; --ESTJ: #3a6a4a; --ESFJ: #6a9a7a;
+    --ISTP: #8e6b3d; --ISFP: #9e7a4a; --ESTP: #7a5a2a; --ESFP: #c17b3f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── UPLOAD SCREEN ── */
+  #upload-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .upload-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 4px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .upload-sub {
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 48px;
+  }
+
+  .drop-zone {
+    width: 100%;
+    max-width: 480px;
+    border: 2px dashed var(--rule);
+    border-radius: 12px;
+    padding: 56px 32px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--paper);
+    margin-bottom: 24px;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--ink);
+    background: white;
+  }
+
+  .drop-icon { font-size: 40px; margin-bottom: 16px; }
+
+  .drop-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+
+  .drop-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .upload-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 32px;
+    background: var(--ink);
+    color: white;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+  }
+
+  .upload-btn:hover { background: #2d2d4a; }
+
+  #fileInput { display: none; }
+
+  .upload-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  /* ── CARDS SCREEN ── */
+  #cards-screen { display: none; padding: 32px 24px 60px; }
+
+  .cards-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .cards-header-left h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 3px;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .cards-header-left p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .header-btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-outline {
+    padding: 10px 22px;
+    border: 2px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-outline:hover { background: var(--ink); color: white; }
+
+  .btn-solid {
+    padding: 10px 22px;
+    border: none;
+    background: var(--ink);
+    color: white;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-solid:hover { background: #2d2d4a; }
+
+  /* ── CARD GRID ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── THE CARD ── */
+  .card {
+    background: var(--paper);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    break-inside: avoid;
+  }
+
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.13), 0 0 0 1px rgba(0,0,0,0.05);
+  }
+
+  /* Card header band */
+  .card-header {
+    padding: 24px 24px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-header::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    pointer-events: none;
+  }
+
+  .card-series {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 12px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .card-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px;
+    letter-spacing: 2px;
+    color: white;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .card-archetype {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 16px;
+  }
+
+  .card-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 100px;
+    padding: 5px 14px;
+  }
+
+  .card-type-letters {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: white;
+  }
+
+  .card-type-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-left: 1px solid rgba(255,255,255,0.25);
+    padding-left: 8px;
+  }
+
+  /* Card body */
+  .card-body {
+    padding: 20px 24px 24px;
+  }
+
+  /* Snapshot */
+  .card-snapshot {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #3a3a4a;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    font-style: italic;
+  }
+
+  /* Working types */
+  .card-section-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .wt-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .wt-chip {
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .wt-chip.strength { background: #e8f5ee; color: #1a7a4a; border: 1px solid #b8e0c8; }
+  .wt-chip.competency { background: #e8eef8; color: #3a5a8a; border: 1px solid #b8cce8; }
+  .wt-chip.frustration { background: #faeaea; color: #8a3030; border: 1px solid #e8b8b8; }
+
+  /* Quick stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .stat-item {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .stat-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  /* Tips rows */
+  .tips-section { margin-bottom: 14px; }
+
+  .tip-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 5px;
+  }
+
+  .tip-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    margin-top: 1px;
+  }
+
+  .tip-icon.green { background: #e8f5ee; }
+  .tip-icon.amber { background: #fdf0e0; }
+
+  .tip-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #3a3a4a;
+  }
+
+  /* Card footer */
+  .card-footer {
+    padding: 12px 24px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-footer-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .card-footer-type {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  .card-download-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 5px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .card-download-btn:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: white;
+  }
+
+  /* Single card print overlay */
+  #print-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: white;
+    z-index: 9999;
+    padding: 40px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  #print-overlay .card {
+    max-width: 400px;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  #print-overlay .card:hover { transform: none; }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    body { background: white; }
+    #upload-screen { display: none !important; }
+    #cards-screen { display: block !important; padding: 0; }
+    .cards-header { display: none; }
+    .card-download-btn { display: none !important; }
+
+    /* Single card mode — only print overlay card */
+    body.printing-single #cards-screen { display: none !important; }
+    body.printing-single #print-overlay {
+      display: flex !important;
+      position: static;
+      padding: 0;
+      background: white;
+    }
+
+    /* All cards mode */
+    body:not(.printing-single) .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .card {
+      box-shadow: none;
+      border: 1px solid #ddd;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .card:hover { transform: none; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+
+  @media (max-width: 600px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .cards-header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SINGLE CARD PRINT OVERLAY -->
+<div id="print-overlay"></div>
+
+<!-- UPLOAD SCREEN -->
+<div id="upload-screen">
+  <div class="upload-logo">Catalyst Cards</div>
+  <div class="upload-sub">Team Personality Profile Cards</div>
+
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="drop-icon">📋</div>
+    <div class="drop-title">Upload your results file</div>
+    <div class="drop-desc">
+      Download your Google Sheet as a CSV file<br>
+      (File → Download → Comma Separated Values)<br>
+      then drop it here or click to browse
+    </div>
+    <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+      Choose File
+    </button>
+  </div>
+
+  <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" onchange="handleFile(event)">
+  <div class="upload-hint">Supports CSV files exported from Google Sheets or Excel</div>
+</div>
+
+<!-- CARDS SCREEN -->
+<div id="cards-screen">
+  <div class="cards-header">
+    <div class="cards-header-left">
+      <h1>Catalyst Cards</h1>
+      <p id="cardCount"></p>
+    </div>
+    <div class="header-btns">
+      <button class="btn-outline" onclick="goBack()">← Upload New File</button>
+      <button class="btn-solid" onclick="window.print()">🖨 Print All Cards</button>
+    </div>
+  </div>
+  <div class="cards-grid" id="cardsGrid"></div>
+</div>
+
+<script>
+// ── MBTI DATA ──────────────────────────────────────────────────────
+
+const mbtiColors = {
+  INTJ:'#3d6b8e', INTP:'#5b7fa6', ENTJ:'#2a5278', ENTP:'#4a7fa5',
+  INFJ:'#6b5b8e', INFP:'#8e6b9e', ENFJ:'#5a3d7a', ENFP:'#7a5a9e',
+  ISTJ:'#4a7a5a', ISFJ:'#5a8a6a', ESTJ:'#3a6a4a', ESFJ:'#6a9a7a',
+  ISTP:'#8e6b3d', ISFP:'#9e7a4a', ESTP:'#7a5a2a', ESFP:'#c17b3f'
+};
+
+const mbtiSnapshots = {
+  INTJ: "Strategic, fiercely independent, and driven by long-range vision. Thinks in systems and sees ten moves ahead. Works best with autonomy and a clear purpose.",
+  INTP: "A deep analytical thinker who loves solving complex problems for their own sake. Needs intellectual freedom and dislikes rigid rules without logical basis.",
+  ENTJ: "Natural leader who moves fast, thinks big, and holds everyone to a high standard. Decisive, direct, and energized by challenge and change.",
+  ENTP: "Ideas machine. Loves debating, challenging assumptions, and finding unconventional solutions. Gets bored quickly without novelty and stimulation.",
+  INFJ: "Rare combination of deep empathy and strategic thinking. Quietly visionary, intensely private, and deeply committed to meaningful work.",
+  INFP: "Values-driven idealist who brings authentic care to everything they do. Thrives in environments where their individuality and creativity are respected.",
+  ENFJ: "Born team builder who reads people intuitively and brings out their best. Warm, organized, and happiest when helping others grow.",
+  ENFP: "Energetic, creative, and deeply people-oriented. Sees possibility everywhere and inspires others to think bigger.",
+  ISTJ: "Reliable, thorough, and deeply dependable. Does what they say, says what they mean. The person a team leans on when follow-through really matters.",
+  ISFJ: "Warm, attentive, and quietly essential. Remembers the details others miss and shows care through consistent, practical support.",
+  ESTJ: "Organized, direct, and results-focused. Builds structure where there is none and holds teams accountable with clarity and fairness.",
+  ESFJ: "Connector and caretaker. Creates belonging wherever they go and makes sure no one feels left out or unsupported.",
+  ISTP: "Cool-headed problem solver who works best hands-on. Observes more than they speak, acts more than they plan, and delivers under pressure.",
+  ISFP: "Gentle, authentic, and quietly observant. Brings real care and originality to their work without needing the spotlight.",
+  ESTP: "Action-first. Reads the room instantly, adapts on the fly, and thrives in fast-moving situations where quick decisions matter.",
+  ESFP: "Warm, spontaneous, and genuinely enthusiastic about people. Makes work feel alive and brings energy to any team dynamic."
+};
+
+const mbtiWorksWith = {
+  INTJ: ["Give advance notice — they need time to prepare", "Respect their need for uninterrupted deep work", "Be direct and logical — skip the small talk"],
+  INTP: ["Don't rush their thinking — let them process fully", "Engage their ideas seriously, even half-formed ones", "Avoid micromanaging — trust their process"],
+  ENTJ: ["Be prepared and on time — they value efficiency", "Challenge them with ambitious goals", "Give direct feedback — they can handle it"],
+  ENTP: ["Engage their ideas, even the wild ones", "Give them variety — repetition kills their energy", "Don't take debate personally — it's how they think"],
+  INFJ: ["Honor their need for quiet reflection time", "Share the meaning behind the work, not just the task", "Build trust slowly — they open up over time"],
+  INFP: ["Never dismiss their values or feelings as impractical", "Give them creative autonomy where possible", "Appreciate their work genuinely — they notice"],
+  ENFJ: ["Let them know their contribution matters", "Include them in decisions that affect the team", "Don't mistake their warmth for a lack of standards"],
+  ENFP: ["Celebrate their ideas before editing them", "Connect their work to a bigger purpose", "Give flexible structure — not rigid schedules"],
+  ISTJ: ["Be consistent — they notice and value reliability", "Give clear expectations and defined timelines", "Avoid last-minute changes when possible"],
+  ISFJ: ["Acknowledge their contributions explicitly — they're easy to overlook", "Be thoughtful about how you deliver feedback", "Create space for them to share — they won't push in"],
+  ESTJ: ["Be organized and come prepared", "Follow through on what you commit to", "Welcome their directness — they mean well"],
+  ESFJ: ["Recognize their efforts publicly", "Keep the team climate warm and respectful", "Tell them how the team is doing — they track it"],
+  ISTP: ["Don't over-explain — give the goal, trust the method", "Respect their quiet — it's not disengagement", "Bring them problems that need creative solving"],
+  ISFP: ["Create psychological safety — they open up when safe", "Appreciate their work — they care deeply even if quietly", "Don't force them into the spotlight"],
+  ESTP: ["Move fast and decide quickly with them", "Keep things practical — skip the theory", "Give them real problems to solve in real time"],
+  ESFP: ["Bring energy and warmth to interactions", "Make work feel meaningful and fun where possible", "Appreciate their people instincts — they're real"]
+};
+
+const mbtiWatchFor = {
+  INTJ: ["May come across as dismissive of others' ideas", "Can be slow to share until thinking is complete"],
+  INTP: ["May lose interest once the puzzle is solved", "Can over-complicate decisions that need speed"],
+  ENTJ: ["May move too fast for others to keep up", "Can be blunt in ways that land harder than intended"],
+  ENTP: ["May start more than they finish", "Can enjoy the debate more than the resolution"],
+  INFJ: ["Tends to absorb others' stress as their own", "May go quiet when overwhelmed instead of asking for help"],
+  INFP: ["May avoid conflict longer than is healthy", "Can be hard on themselves when they fall short of their values"],
+  ENFJ: ["May delay hard conversations to protect harmony", "Can overextend themselves caring for others"],
+  ENFP: ["Follow-through can be inconsistent", "May overcommit when excited"],
+  ISTJ: ["Can resist change that disrupts proven methods", "May hold expectations of others they haven't stated clearly"],
+  ISFJ: ["May say yes when they mean no to avoid disappointing others", "Tends to undervalue and understate their own contributions"],
+  ESTJ: ["Can be inflexible when a plan needs to change", "May prioritize task completion over team morale"],
+  ESFJ: ["Conflict avoidance can delay necessary hard conversations", "May take criticism personally even when it's constructive"],
+  ISTP: ["May appear detached or disengaged in group settings", "Shares concerns late — often after they've already solved it alone"],
+  ISFP: ["May not advocate loudly enough for their own needs", "Can struggle with very direct or critical feedback"],
+  ESTP: ["May underestimate the value of long-range planning", "Can move on before others have fully processed a decision"],
+  ESFP: ["Structure and follow-through can be a challenge", "May avoid difficult or emotionally heavy conversations"]
+};
+
+const energyStyle = {
+  E: "Recharges with people · Thinks out loud · Energized by collaboration",
+  I: "Recharges alone · Processes internally · Energized by deep focus"
+};
+
+const infoStyle = {
+  S: "Grounds in facts & experience · Practical · Detail-oriented",
+  N: "Sees patterns & possibilities · Big-picture · Future-focused"
+};
+
+const decisionStyle = {
+  T: "Decides with logic & analysis · Values clarity & consistency",
+  F: "Decides through people & values · Empathetic · Relationship-aware"
+};
+
+const structureStyle = {
+  J: "Prefers structure & closure · Plans ahead · Reliable",
+  P: "Prefers flexibility · Adapts well · Open to change"
+};
+
+// ── FILE HANDLING ──────────────────────────────────────────────────
+
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const people = parseCSV(text);
+    if (people.length === 0) {
+      alert('No valid data found. Make sure you\'re uploading the Catalyst Profile results CSV.');
+      return;
+    }
+    renderCards(people);
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+
+  // Parse header
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+  const people = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    if (values.length < 5) continue;
+
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = (values[idx] || '').trim().replace(/^"|"$/g, ''); });
+
+    // Skip empty or test rows
+    if (!row['Name'] || !row['MBTI Type'] || row['Name'].toLowerCase() === 'test user') continue;
+
+    people.push({
+      name:         row['Name']          || '',
+      mbti:         row['MBTI Type']     || '',
+      archetype:    row['Archetype']     || '',
+      ei:           parseFloat(row['E/I Score']) || 3,
+      sn:           parseFloat(row['S/N Score']) || 3,
+      tf:           parseFloat(row['T/F Score']) || 3,
+      jp:           parseFloat(row['J/P Score']) || 3,
+      strength1:    row['Working Type 1']  || '',
+      strength2:    row['Working Type 2']  || '',
+      competency1:  row['Competency 1']    || '',
+      competency2:  row['Competency 2']    || '',
+      frustration1: row['Frustration 1']   || '',
+      frustration2: row['Frustration 2']   || '',
+    });
+  }
+  return people;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQuotes = !inQuotes; }
+    else if (line[i] === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += line[i]; }
+  }
+  result.push(current);
+  return result;
+}
+
+// ── RENDER CARDS ──────────────────────────────────────────────────
+
+function renderCards(people) {
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('cards-screen').style.display = 'block';
+  document.getElementById('cardCount').textContent = `${people.length} team member${people.length !== 1 ? 's' : ''}`;
+
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = '';
+
+  people.forEach(p => {
+    const card = buildCard(p);
+    grid.appendChild(card);
+  });
+}
+
+function buildCard(p) {
+  const mbti    = p.mbti.toUpperCase();
+  const color   = mbtiColors[mbti] || '#555';
+  const EI      = mbti[0] || 'E';
+  const SN      = mbti[1] || 'S';
+  const TF      = mbti[2] || 'T';
+  const JP      = mbti[3] || 'J';
+
+  const snapshot    = mbtiSnapshots[mbti]    || '';
+  const worksWith   = mbtiWorksWith[mbti]    || [];
+  const watchFor    = mbtiWatchFor[mbti]     || [];
+
+  const firstName = p.name.split(' ')[0];
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <!-- HEADER -->
+    <div class="card-header" style="background: linear-gradient(135deg, ${color} 0%, ${color}cc 100%);">
+      <div class="card-series">The Catalyst Profile · Team Card</div>
+      <div class="card-name">${p.name}</div>
+      <div class="card-archetype">${p.archetype}</div>
+      <div class="card-type-badge">
+        <span class="card-type-letters">${mbti}</span>
+        <span class="card-type-label">Myers-Briggs</span>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="card-body">
+
+      <!-- Snapshot -->
+      <div class="card-snapshot">"${snapshot}"</div>
+
+      <!-- Working Types -->
+      <div class="card-section-label">Working Types</div>
+      <div class="wt-row">
+        <span class="wt-chip strength">★ ${p.strength1}</span>
+        <span class="wt-chip strength">★ ${p.strength2}</span>
+        <span class="wt-chip competency">◎ ${p.competency1}</span>
+        <span class="wt-chip competency">◎ ${p.competency2}</span>
+        <span class="wt-chip frustration">✕ ${p.frustration1}</span>
+        <span class="wt-chip frustration">✕ ${p.frustration2}</span>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-label">Energy</div>
+          <div class="stat-value">${EI === 'E' ? '⚡ Extrovert' : '🔋 Introvert'}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Information</div>
+          <div class="stat-value">${SN === 'S' ? '🔍 Sensing' : '🔭 Intuitive'}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Decisions</div>
+          <div class="stat-value">${TF === 'T' ? '⚖️ Thinking' : '❤️ Feeling'}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Structure</div>
+          <div class="stat-value">${JP === 'J' ? '📋 Judging' : '🌊 Perceiving'}</div>
+        </div>
+      </div>
+
+      <!-- Work With Tips -->
+      <div class="tips-section">
+        <div class="card-section-label">How to work with ${firstName}</div>
+        ${worksWith.map(t => `
+          <div class="tip-row">
+            <div class="tip-icon green">✓</div>
+            <div class="tip-text">${t}</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Watch For -->
+      <div class="tips-section">
+        <div class="card-section-label">Keep in mind</div>
+        ${watchFor.map(t => `
+          <div class="tip-row">
+            <div class="tip-icon amber">!</div>
+            <div class="tip-text">${t}</div>
+          </div>`).join('')}
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="card-footer">
+      <span class="card-footer-label">The Catalyst Profile</span>
+      <button class="card-download-btn" onclick="downloadCard(this)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Save as PDF
+      </button>
+      <span class="card-footer-type">${mbti} · ${p.archetype}</span>
+    </div>
+  `;
+
+  return card;
+}
+
+function downloadCard(btn) {
+  // Get the card element
+  const card = btn.closest('.card');
+  const overlay = document.getElementById('print-overlay');
+
+  // Get person name for the PDF title
+  const nameEl = card.querySelector('.card-name');
+  const typeEl = card.querySelector('.card-type-letters');
+  const name   = nameEl ? nameEl.textContent.trim() : 'Card';
+  const type   = typeEl ? typeEl.textContent.trim() : '';
+
+  // Clone the card into the overlay
+  overlay.innerHTML = '';
+  const clone = card.cloneNode(true);
+  // Remove the download button from the clone
+  const cloneBtn = clone.querySelector('.card-download-btn');
+  if (cloneBtn) cloneBtn.remove();
+  overlay.appendChild(clone);
+
+  // Set document title so PDF filename is meaningful
+  const prevTitle = document.title;
+  document.title = `Catalyst Card — ${name} — ${type}`;
+
+  // Add printing-single class to body so print CSS kicks in
+  document.body.classList.add('printing-single');
+
+  window.print();
+
+  // Restore everything after print dialog closes
+  setTimeout(() => {
+    document.body.classList.remove('printing-single');
+    overlay.innerHTML = '';
+    document.title = prevTitle;
+  }, 1000);
+}
+
+function goBack() {
+  document.getElementById('cards-screen').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('cardsGrid').innerHTML = '';
+  document.getElementById('fileInput').value = '';
+}
+</script>
+</body>
+</html>
